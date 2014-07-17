@@ -1,0 +1,12 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    geocoder (1.2.3)
+    ipaddr_range_set (1.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  geocoder
+  ipaddr_range_set
