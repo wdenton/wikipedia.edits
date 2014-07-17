@@ -8,7 +8,7 @@
 #  ./contributions-by-ip.rb https://raw.githubusercontent.com/edsu/anon/master/config.json.template > us-congress.csv
 
 require 'rubygems'
-require 'geocoder'
+# require 'geocoder'
 
 require 'json'
 require 'open-uri'
@@ -21,7 +21,6 @@ STDOUT.sync = true
 STDERR.sync = true
 
 # Ranges file can either be local or on the web.
-
 ranges_file = ARGV[0]
 unless ranges_file
   puts "Please specify JSON file containing IP ranges.  It can be local or on the web."
@@ -34,10 +33,6 @@ else
   ranges_content = File.read(ranges_file)
 end
 ranges = JSON.parse(ranges_content)["ranges"]
-
-# result = Geocoder.search("67.211.76.237")
-#puts result.first.city
-#puts result.first.state
 
 # Use any start and end dates you want.
 uc_start = "2005-01-01T00:00:00Z"
@@ -52,7 +47,7 @@ langs = ["ar", "bg", "ca", "zh", "cs", "da", "nl", "en", "eo", "eu",
   "fa", "fi", "fr", "de", "el", "he", "hu", "id", "it", "ja",
   "ko", "lt", "ms", "no", "pl", "pt", "ro", "ru", "sk", "sl",
   "es", "sv", "tr", "uk", "vi", "vo", "co"]
-# langs = ["en"]
+# langs = ["en", "fr"]
 
 # URL to get a list of contributions by a known user.  Plug in parameters we need later.
 # See https://www.mediawiki.org/wiki/API:Usercontribs
