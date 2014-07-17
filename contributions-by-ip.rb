@@ -3,7 +3,9 @@
 
 # Look up all Wikipedia edits made from a given range of IP numbers.
 # Output as CSV.
-# Usage: ./contributions-by-ip.rb ip-ranges.json > results.csv
+# Usage:
+#  ./contributions-by-ip.rb ip-ranges.json > results.csv
+#  ./contributions-by-ip.rb https://raw.githubusercontent.com/edsu/anon/master/config.json.template > us-congress.csv
 
 require 'rubygems'
 require 'geocoder'
@@ -18,13 +20,20 @@ require 'ipaddr_range_set' # https://github.com/jrochkind/ipaddr_range_set
 STDOUT.sync = true
 STDERR.sync = true
 
-range_file = ARGV[0]
-if range_file.nil?
-  puts "Please specify JSON file containing IP ranges"
+# Ranges file can either be local or on the web.
+
+ranges_file = ARGV[0]
+unless ranges_file
+  puts "Please specify JSON file containing IP ranges.  It can be local or on the web."
   exit
 end
 
-@ranges = JSON.parse(File.read(range_file))
+if /^http/.match(ranges_file)
+  ranges_content = open(ranges_file).read
+else
+  ranges_content = File.read(ranges_file)
+end
+ranges = JSON.parse(ranges_content)["ranges"]
 
 # result = Geocoder.search("67.211.76.237")
 #puts result.first.city
@@ -38,11 +47,12 @@ uc_end   = "2014-07-15T23:59:59Z"
 sleep_time = 0.25
 
 # We'll loop through the Wikipedias for all these languages.
-# langs = ["ar", "bg", "ca", "zh", "cs", "da", "nl", "en", "eo", "eu",
-#   "fa", "fi", "fr", "de", "el", "he", "hu", "id", "it", "ja",
-#   "ko", "lt", "ms", "no", "pl", "pt", "ro", "ru", "sk", "sl",
-#   "es", "sv", "tr", "uk", "vi", "vo", "co"]
-langs = ["en"]
+# TODO: Option to specify languages.
+langs = ["ar", "bg", "ca", "zh", "cs", "da", "nl", "en", "eo", "eu",
+  "fa", "fi", "fr", "de", "el", "he", "hu", "id", "it", "ja",
+  "ko", "lt", "ms", "no", "pl", "pt", "ro", "ru", "sk", "sl",
+  "es", "sv", "tr", "uk", "vi", "vo", "co"]
+# langs = ["en"]
 
 # URL to get a list of contributions by a known user.  Plug in parameters we need later.
 # See https://www.mediawiki.org/wiki/API:Usercontribs
@@ -69,12 +79,13 @@ usercontrib_url = "https://::LANG::.wikipedia.org/w/api.php?" +
 #   "timestamp": "2005-08-02T18:59:24Z"
 # }
 #
-# With that, we can contstruct a URL using the pageid and revid (setting it as oldid) and "diff=prev" to see the change that was made:
+# With that, we can construct a URL using the pageid and revid (setting it as oldid) and "diff=prev" to see the change that was made:
 # https://en.wikipedia.org/w/index.php?pageid=123498&oldid=20131642&diff=prev
 
 # Header for the resulting CSV ... make sure to adjust this line if you fiddle with the output
+# We'll dump out lines as we go, so you can tail -f the results file as it runs, or you can analyze it before the program finishes.
 puts [ "user", "lang", "title", "timestamp", "pageid", "revid", "parentid", "sizediff" ].to_csv
-@ranges.each_pair do |office, netblock|
+ranges.each_pair do |office, netblock|
   STDERR.puts office
   netblock.each do |block|
     ip_range = []
