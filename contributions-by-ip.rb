@@ -38,8 +38,11 @@ ranges = JSON.parse(ranges_content)["ranges"]
 uc_start = "2005-01-01T00:00:00Z"
 uc_end   = "2014-07-15T23:59:59Z"
 
-# I had no trouble with 0.5; let's try 0.25.  Don't want to get rate limited.
-sleep_time = 0.25
+# Time to sleep between requests
+# http://www.mediawiki.org/wiki/API:Etiquette says "If you make your requests in series rather than in parallel ... then you should definitely be fine."
+# And "Use a descriptive User-Agent header that includes your application's name and potentially your email address if appropriate."
+# TODO: Add User-Agent header.
+sleep_time = 0
 
 # We'll loop through the Wikipedias for all these languages.
 # TODO: Option to specify languages.
