@@ -21,11 +21,7 @@ STDOUT.sync = true
 STDERR.sync = true
 
 # Ranges file can either be local or on the web.
-ranges_file = ARGV[0]
-unless ranges_file
-  puts "Please specify JSON file containing IP ranges.  It can be local or on the web."
-  exit
-end
+ranges_file = ARGV.shift or abort "Please specify JSON file containing IP ranges.  It can be local or on the web."
 
 if /^http/.match(ranges_file)
   ranges_content = open(ranges_file).read
