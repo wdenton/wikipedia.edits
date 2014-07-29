@@ -30,7 +30,7 @@ if /^http/.match(ranges_file)
 else
   ranges_content = File.read(ranges_file)
 end
-ranges = JSON.parse(ranges_content)['ranges']
+ranges = JSON.parse(ranges_content)
 
 # Start and end dates for the search.
 #   Timestamp formatting: https://www.mediawiki.org/wiki/API:Data_formats#Timestamps
@@ -65,7 +65,6 @@ usercontrib_url = 'https://::LANG::.wikipedia.org/w/api.php?' \
   '&format=json'
 usercontrib_url.gsub!("|", "%7C") # Ruby doesn't like | in URIs, and URI::escape is deprecated, so escape by hand.
 
-
 # We get back chunks that look like this (in JSON):
 # {
 #   "userid": "0",
@@ -89,18 +88,23 @@ usercontrib_url.gsub!("|", "%7C") # Ruby doesn't like | in URIs, and URI::escape
 # the program finishes.
 puts %w(user lang title timestamp pageid revid parentid sizediff).to_csv
 
-# This needs to match too, of course.
-def contrib_line(ip, lang, contrib)
-  [
-    ip,
-    lang,
-    contrib['title'],
-    contrib['timestamp'],
-    contrib['pageid'],
-    contrib['revid'],
-    contrib['parentid'],
-    contrib['sizediff']
-  ]
+# Parse and handle each contribution made by a user
+def parse_contribs(ip, lang, edits)
+  contribs = edits['query']['usercontribs']
+  return unless contribs.any?
+  contribs.each do |contrib|
+    STDERR.print '*' # Found something!
+    [
+      ip,
+      lang,
+      contrib['title'],
+      contrib['timestamp'],
+      contrib['pageid'],
+      contrib['revid'],
+      contrib['parentid'],
+      contrib['sizediff']
+    ].to_csv
+  end
 end
 
 missed_urls = []
@@ -124,35 +128,25 @@ ranges.each_pair do |office, netblock|
         # STDERR.puts url
         begin
           edits = JSON.parse(open(url, 'User-Agent' => user_agent).read)
-          contribs = edits['query']['usercontribs']
-          if contribs.any?
-            contribs.each do |contrib|
-              puts contrib_line(ip, lang, contrib).to_csv
-              STDERR.print '*' # Found something!
-            end
-            if edits['query-continue']
-              # There are more to get, because we hit the maximum number of
-              # results in one query.  Loop through, using the timestamp
-              # given, until there's nothing left.
-              more_to_get = true
-              while more_to_get
-                uccontinue = edits['query-continue']['usercontribs']['uccontinue']
-                url_for_more = url + "&uccontinue=#{uccontinue}"
-                edits = JSON.parse(open(url_for_more, 'User-Agent' => user_agent).read)
-                contribs = edits['query']['usercontribs']
-                contribs.each do |contrib|
-                  puts contrib_line(ip, lang, contrib).to_csv
-                  STDERR.print '*'
-                end
-                more_to_get = false unless edits['query-continue']
-              end
-            end
-          end
-          sleep sleep_time
         rescue => error
           STDERR.puts "\nCould not load #{url}: #{error}"
           missed_urls << url
         end
+        puts parse_contribs(ip, lang, edits)
+        if edits['query-continue']
+          # There are more to get, because we hit the maximum number of
+          # results in one query.  Loop through, using the timestamp
+          # given, until there's nothing left.
+          more_to_get = true
+          while more_to_get
+            uccontinue = edits['query-continue']['usercontribs']['uccontinue']
+            url_for_more = url + "&uccontinue=#{uccontinue}"
+            edits = JSON.parse(open(url_for_more, 'User-Agent' => user_agent).read)
+            puts parse_contribs(ip, lang, edits)
+            more_to_get = false unless edits['query-continue']
+          end
+        end
+        sleep sleep_time
       end
       STDERR.print "\n"
     end
