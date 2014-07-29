@@ -32,7 +32,8 @@ else
 end
 ranges = JSON.parse(ranges_content)['ranges']
 
-# Use any start and end dates you want.
+# Start and end dates for the search.
+#   Timestamp formatting: https://www.mediawiki.org/wiki/API:Data_formats#Timestamps
 uc_start = '2014-07-01T00:00:00Z'
 uc_end   = '2014-07-27T23:59:59Z'
 
@@ -148,7 +149,7 @@ ranges.each_pair do |office, netblock|
           end
           sleep sleep_time
         rescue => error
-          STDERR.put "Could not load #{url}: #{error}"
+          STDERR.puts "\nCould not load #{url}: #{error}"
           missed_urls << url
         end
       end
