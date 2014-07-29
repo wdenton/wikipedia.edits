@@ -32,8 +32,8 @@ end
 ranges = JSON.parse(ranges_content)['ranges']
 
 # Use any start and end dates you want.
-uc_start = '2005-01-01T00:00:00Z'
-uc_end   = '2014-07-15T23:59:59Z'
+uc_start = '2014-07-01T00:00:00Z'
+uc_end   = '2014-07-27T23:59:59Z'
 
 # Time to sleep between requests
 #   http://www.mediawiki.org/wiki/API:Etiquette says "If you make your
@@ -88,6 +88,22 @@ usercontrib_url = 'https://::LANG::.wikipedia.org/w/api.php?' \
 # tail -f the results file as it runs, or you can analyze it before
 # the program finishes.
 puts %w(user lang title timestamp pageid revid parentid sizediff).to_csv
+
+def print_contrib_line(ip, lang, contrib)
+  puts [
+    ip,
+    lang,
+    contrib['title'],
+    contrib['timestamp'],
+    contrib['pageid'],
+    contrib['revid'],
+    contrib['parentid'],
+    contrib['sizediff']
+  ].to_csv
+end
+
+missed_urls = []
+
 ranges.each_pair do |office, netblock|
   STDERR.puts office
   netblock.each do |block|
@@ -99,7 +115,7 @@ ranges.each_pair do |office, netblock|
       ip_range = IPAddr.new(block[0])..IPAddr.new(block[1])
     end
     ip_range.each do |ip|
-      STDERR.print ip.to_s + ' '
+      STDERR.print "#{ip} "
       langs.each do |lang|
         # Query each Wikipedia for this IP number.  This takes a while, so the ...... output tells us how things are going.
         STDERR.print '.'
@@ -120,7 +136,7 @@ ranges.each_pair do |office, netblock|
                 contrib['parentid'],
                 contrib['sizediff']
               ].to_csv
-              STDERR.print '*' # If we found something.  Exciting!
+              STDERR.print '*' # Found something!
             end
             if edits['query-continue']
               # There are more to get, because we hit the maximum number of
@@ -156,9 +172,16 @@ ranges.each_pair do |office, netblock|
           sleep sleep_time
         rescue => error
           STDERR.put "Could not load #{url}: #{error}"
+          missed_urls << url
         end
       end
       STDERR.print "\n"
     end
   end
+end
+
+# TODO Make this better; if URLs are missed, make it easier to catch up
+if missed_urls
+  puts "Missed URLs:"
+  missed_urls
 end
