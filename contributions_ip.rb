@@ -88,13 +88,13 @@ usercontrib_url.gsub!("|", "%7C") # Ruby doesn't like | in URIs, and URI::escape
 # the program finishes.
 puts %w(user lang title timestamp pageid revid parentid sizediff).to_csv
 
-# Parse and handle each contribution made by a user
-def parse_contribs(ip, lang, edits)
+# Parse and print each contribution made by a user
+def print_contribs(ip, lang, edits)
   contribs = edits['query']['usercontribs']
   return unless contribs.any?
   contribs.each do |contrib|
-    STDERR.print '*' # Found something!
-    [
+    STDERR.print 'x' # Found something!
+    puts [
       ip,
       lang,
       contrib['title'],
@@ -132,7 +132,7 @@ ranges.each_pair do |office, netblock|
           STDERR.puts "\nCould not load #{url}: #{error}"
           missed_urls << url
         end
-        puts parse_contribs(ip, lang, edits)
+        print_contribs(ip, lang, edits)
         if edits['query-continue']
           # There are more to get, because we hit the maximum number of
           # results in one query.  Loop through, using the timestamp
@@ -142,7 +142,7 @@ ranges.each_pair do |office, netblock|
             uccontinue = edits['query-continue']['usercontribs']['uccontinue']
             url_for_more = url + "&uccontinue=#{uccontinue}"
             edits = JSON.parse(open(url_for_more, 'User-Agent' => user_agent).read)
-            puts parse_contribs(ip, lang, edits)
+            print_contribs(ip, lang, edits)
             more_to_get = false unless edits['query-continue']
           end
         end
