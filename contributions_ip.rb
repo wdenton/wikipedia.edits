@@ -89,8 +89,9 @@ usercontrib_url.gsub!("|", "%7C") # Ruby doesn't like | in URIs, and URI::escape
 # the program finishes.
 puts %w(user lang title timestamp pageid revid parentid sizediff).to_csv
 
-def print_contrib_line(ip, lang, contrib)
-  puts [
+# This needs to match too, of course.
+def contrib_line(ip, lang, contrib)
+  [
     ip,
     lang,
     contrib['title'],
@@ -99,7 +100,7 @@ def print_contrib_line(ip, lang, contrib)
     contrib['revid'],
     contrib['parentid'],
     contrib['sizediff']
-  ].to_csv
+  ]
 end
 
 missed_urls = []
@@ -124,9 +125,9 @@ ranges.each_pair do |office, netblock|
         begin
           edits = JSON.parse(open(url, 'User-Agent' => user_agent).read)
           contribs = edits['query']['usercontribs']
-          if contribs.length > 0
+          if contribs.any?
             contribs.each do |contrib|
-              print_contrib_line(ip, lang, contrib)
+              puts contrib_line(ip, lang, contrib).to_csv
               STDERR.print '*' # Found something!
             end
             if edits['query-continue']
@@ -140,7 +141,7 @@ ranges.each_pair do |office, netblock|
                 edits = JSON.parse(open(url_for_more, 'User-Agent' => user_agent).read)
                 contribs = edits['query']['usercontribs']
                 contribs.each do |contrib|
-                  print_contrib_line(ip, lang, contrib)
+                  puts contrib_line(ip, lang, contrib).to_csv
                   STDERR.print '*'
                 end
                 more_to_get = false unless edits['query-continue']
@@ -160,7 +161,7 @@ end
 
 # TODO: Make this better; if URLs are missed, make it easier to catch up
 # Log to file?  Need to make it easy to process by this script.
-if missed_urls
+if missed_urls.any?
   puts 'Missed URLs:'
-  missed_urls
+  missed_urls.join("\n")
 end
