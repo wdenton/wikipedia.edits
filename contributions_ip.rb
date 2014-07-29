@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
+$VERBOSE = true
 
 # Look up all Wikipedia edits made from a given range of IP numbers.
 # Output as CSV.
@@ -38,14 +39,10 @@ uc_end   = '2014-07-27T23:59:59Z'
 # Time to sleep between requests
 #   http://www.mediawiki.org/wiki/API:Etiquette says "If you make your
 #   requests in series rather than in parallel ... then you should
-#   definitely be fine." And "Use a descriptive User-Agent header that
-#   includes your application's name and potentially your email address
-#   if appropriate."
-
-# TODO: Add User-Agent header.
+#   definitely be fine."
 sleep_time = 0
 
-user_agent = "Crawler: https://github.com/wdenton/wikipedia.edits"
+user_agent = 'Crawler: https://github.com/wdenton/wikipedia.edits (wtd@pobox.com)'
 
 # We'll loop through the Wikipedias for all these languages.
 # TODO: Option to specify languages.
@@ -65,6 +62,8 @@ usercontrib_url = 'https://::LANG::.wikipedia.org/w/api.php?' \
   '&uclimit=500' \
   '&ucprop=title|timestamp|ids|sizediff' \
   '&format=json'
+usercontrib_url.gsub!("|", "%7C") # Ruby doesn't like | in URIs, and URI::escape is deprecated, so escape by hand.
+
 
 # We get back chunks that look like this (in JSON):
 # {
@@ -119,23 +118,14 @@ ranges.each_pair do |office, netblock|
       langs.each do |lang|
         # Query each Wikipedia for this IP number.  This takes a while, so the ...... output tells us how things are going.
         STDERR.print '.'
-        url = URI.escape(usercontrib_url.gsub('::IPNUMBER::', ip.to_s)).gsub('::LANG::', lang)
+        url = usercontrib_url.gsub('::IPNUMBER::', ip.to_s).gsub('::LANG::', lang)
         # STDERR.puts url
         begin
-          edits = JSON.parse(open(url, "User-Agent" => user_agent).read)
+          edits = JSON.parse(open(url, 'User-Agent' => user_agent).read)
           contribs = edits['query']['usercontribs']
           if contribs.length > 0
             contribs.each do |contrib|
-              puts [
-                ip,
-                lang,
-                contrib['title'],
-                contrib['timestamp'],
-                contrib['pageid'],
-                contrib['revid'],
-                contrib['parentid'],
-                contrib['sizediff']
-              ].to_csv
+              print_contrib_line(ip, lang, contrib)
               STDERR.print '*' # Found something!
             end
             if edits['query-continue']
@@ -145,24 +135,11 @@ ranges.each_pair do |office, netblock|
               more_to_get = true
               while more_to_get
                 uccontinue = edits['query-continue']['usercontribs']['uccontinue']
-                url_for_more = url + URI.escape("&uccontinue=#{uccontinue}")
-                # STDERR.puts url_for_more
-                edits = JSON.parse(open(url_for_more, "User-Agent" => user_agent).read)
+                url_for_more = url + "&uccontinue=#{uccontinue}"
+                edits = JSON.parse(open(url_for_more, 'User-Agent' => user_agent).read)
                 contribs = edits['query']['usercontribs']
-                # STDERR.puts contribs.length
                 contribs.each do |contrib|
-                  # STDERR.puts contrib
-                  puts [
-                    ip,
-                    lang,
-                    contrib['title'],
-                    contrib['timestamp'],
-                    contrib['pageid'],
-                    contrib['revid'],
-                    contrib['parentid'],
-                    contrib['sizediff']
-                  ].to_csv
-                  # STDERR.puts contrib['title']
+                  print_contrib_line(ip, lang, contrib)
                   STDERR.print '*'
                 end
                 more_to_get = false unless edits['query-continue']
@@ -180,8 +157,9 @@ ranges.each_pair do |office, netblock|
   end
 end
 
-# TODO Make this better; if URLs are missed, make it easier to catch up
+# TODO: Make this better; if URLs are missed, make it easier to catch up
+# Log to file?  Need to make it easy to process by this script.
 if missed_urls
-  puts "Missed URLs:"
+  puts 'Missed URLs:'
   missed_urls
 end
