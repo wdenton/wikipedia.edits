@@ -5,7 +5,7 @@ Requires Ruby.  If you get an error with the bundle command, run `gem install bu
     # git clone git@github.com:wdenton/wikipedia.edits.git
     # cd wikipedia.edits
 	# bundle install
-	# ./contributions-from-ip.rb ranges/commons.json > commons.csv
+	# ./contributions_ip.rb ranges/commons.json > commons.csv
 
 Then in another shell run this to see the what's found:
 
